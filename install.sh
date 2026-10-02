@@ -317,17 +317,25 @@ UP_TO_DATE=0
 is_up_to_date "$INSTALLED" "$VERSION" && UP_TO_DATE=1
 
 if [ "$MODE" = check ]; then
+  # 顺带 HEAD 一下拿远端体积：同版本号被原地重传时，这个值和摘要里的记录会对不上
+  CHECK_SIZE=$(remote_size "$URL")
+  [ "$CHECK_SIZE" -gt 0 ] 2>/dev/null || CHECK_SIZE=0
   if [ "$JSON" -eq 1 ]; then
-    printf '{"platform":"%s","type":"%s","arch":"%s","version":"%s","url":"%s","api_sha256":"%s","timestamp":%s,"released":"%s","installed":"%s","up_to_date":%s}\n' \
+    printf '{"platform":"%s","type":"%s","arch":"%s","version":"%s","url":"%s","api_sha256":"%s","timestamp":%s,"released":"%s","size":%s,"installed":"%s","up_to_date":%s}\n' \
       "$PLATFORM" "$CHANNEL" "$ARCH" \
       "$(json_escape "$VERSION")" "$(json_escape "$URL")" "$(json_escape "$API_SHA")" \
-      "${TS:-0}" "$(iso_time "$TS")" "$(json_escape "$INSTALLED")" \
+      "${TS:-0}" "$(iso_time "$TS")" "$CHECK_SIZE" "$(json_escape "$INSTALLED")" \
       "$([ "$UP_TO_DATE" -eq 1 ] && printf 'true' || printf 'false')"
   else
     printf '通道      : %s\n' "$PLATFORM"
     printf '最新版本  : %s\n' "$VERSION"
     printf '发布时间  : %s\n' "$(fmt_time "$TS")"
     printf '下载地址  : %s\n' "$URL"
+    if [ "$CHECK_SIZE" -gt 0 ]; then
+      printf '远端大小  : %s 字节\n' "$CHECK_SIZE"
+    else
+      printf '远端大小  : (HEAD 失败，未知)\n'
+    fi
     printf '接口声明  : sha256 %s\n' "${API_SHA:-(无)}"
     if [ -n "$INSTALLED" ]; then
       if [ "$UP_TO_DATE" -eq 1 ]; then

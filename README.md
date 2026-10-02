@@ -105,11 +105,14 @@ curl -fsSL https://ghproxy.net/https://raw.githubusercontent.com/ziyue67/workbud
       "version": "5.5.6.38337834",
       "url": "https://download.codebuddy.cn/workbuddy/saas/linux-x64-deb/...",
       "api_sha256": "03d756b2...",
-      "released": "2026-09-10T17:23:54Z"
+      "released": "2026-09-10T17:23:54Z",
+      "size": 429329908
     }
   }
 }
 ```
+
+`size` 字段是实测的远端文件体积。它有个实际用处：腾讯会在**版本号和构建号都不变**的情况下往同一个地址重传新构建，这时 `version` 看不出任何变化，但 `size` 的 diff 会直接暴露出来（见下）。
 
 只想拿版本号的话：
 
@@ -117,11 +120,39 @@ curl -fsSL https://ghproxy.net/https://raw.githubusercontent.com/ziyue67/workbud
 curl -fsSL https://raw.githubusercontent.com/ziyue67/workbuddy-linux/main/index.json | jq -r '.channels["workbuddy-linux-x64-deb"].version'
 ```
 
+## 同版本号 ≠ 同文件
+
+这是个实际踩到的坑，值得单独说：**腾讯会在版本号、构建号、CDN 文件名全都不变的情况下，往同一个 URL 上传重新构建的包。**
+
+实测记录（同一个 `WorkBuddy-linux-x64-deb-5.5.6.38337834-5f969292.deb`）：
+
+| 观测日期 | 体积 | SHA256 |
+| --- | --- | --- |
+| 2026-09-26 | 429,302,312 | `2ef1bca2…` |
+| 2026-10-02 | 429,329,908 | `2b86814a…` |
+
+包内控制段的构建时间戳是 **2026-09-21 10:26**，比接口返回的 09-10 晚 11 天——即上游 9 月 21 日重新构建后覆盖了旧文件，但一个字都没改版本号。
+
+带来的后果：
+
+- **光看版本号判断"要不要更新"是不准的**。你以为已是最新，实际装的可能是旧构建。
+- 之前的实测哈希会失效：`checksums.json` 里 9/26 记录的那条已经被这次重传推翻了。
+- 这也解释了为什么接口的 `api_sha256` 一直对不上真实文件——那个字段大概对应某个内部构建产物，而不是 CDN 上当前这份。
+
+现在的应对：
+
+- `checksums.json` 记录了每个通道的实测体积与哈希，`entries` 是当前有效值，`rebuild_log` 是历次重传的时间线。
+- `self-check` 工作流每天比对实测体积与 `checksums.json` 记录，一旦对不上就发 `::warning::` 并写进 run summary，不会静默过去。
+- `install.sh --check` 会打印远端大小，`--check --json` 输出里带 `size` 字段，方便自己写脚本盯着。
+- 想装到确定的那一份，用 `--expect-sha256` 固定哈希；但记住哈希本身也会随上游重传而变化。
+
+换句话说：这个仓库能可靠地告诉你**上游当前在发什么**，但它没法给你一个跨时间稳定的二进制标识——上游没提供这种东西。
+
 ## 发布页与校验值
 
 [Releases](https://github.com/ziyue67/workbuddy-linux/releases) 里每个上游版本一条记录，内容是四个通道的官方 CDN 直链和校验值——**不附带安装包文件**，二进制始终留在腾讯自己的 CDN 上，仓库只做索引和直链（原因见 [NOTICE.md](NOTICE.md)）。上游出新版本时由 Action 自动建 release，不需要手动维护。
 
-`checksums.json` 收录实际下载后算出来的 SHA256（接口自带的 `api_sha256` 不可信，见下），欢迎 PR 补充其它通道和版本。
+`checksums.json` 收录实际下载后算出来的 SHA256 与体积（接口自带的 `api_sha256` 不可信，见上），欢迎 PR 补充其它通道和版本。
 
 ## 自动化
 
@@ -130,10 +161,10 @@ curl -fsSL https://raw.githubusercontent.com/ziyue67/workbuddy-linux/main/index.
 | 工作流 | 触发 | 做什么 |
 | --- | --- | --- |
 | [`update-index.yml`](.github/workflows/update-index.yml) | 每天 03:17 UTC + 手动 | 刷新 `index.json` 并提交；发现上游新版本就自动建 Release（只放直链）；任一通道查询失败则整步失败，不会提交残缺索引 |
-| [`self-check.yml`](.github/workflows/self-check.yml) | 每天 06:23 UTC + 手动 + 脚本变更 | 体检：四个通道接口是否可用、直链是否 200 且文件大小正常、`index.json` 是否还在刷新（超过 48 小时未更新就报错） |
+| [`self-check.yml`](.github/workflows/self-check.yml) | 每天 06:23 UTC + 手动 + 脚本变更 | 体检：四个通道接口是否可用、直链是否 200 且文件大小正常、**实测体积与 `checksums.json` 记录的体积是否一致**（对不上说明上游原地重传了包，会发出 warning）、`index.json` 是否还在刷新（超过 48 小时未更新就报错） |
 | [`lint.yml`](.github/workflows/lint.yml) | push / PR | `shellcheck -S style` + `bash -n` |
 
-上游哪天改了接口或换了 CDN 路径，`self-check` 会先红，而不是等用户装不上才发现。所有脚本本地都能直接跑：
+上游哪天改了接口、换了 CDN 路径，或者原地重传了包，`self-check` 会先亮起来，而不是等用户装不上才发现。所有脚本本地都能直接跑：
 
 ```bash
 ./scripts/update-index.sh      # 重新生成 index.json
@@ -144,7 +175,7 @@ curl -fsSL https://raw.githubusercontent.com/ziyue67/workbuddy-linux/main/index.
 ## 常见问题
 
 **接口给的 `sha256hash` 和实际文件对不上？**
-这是官方接口的已知现象，不是下载损坏：`api_sha256` 字段与真实文件的内容哈希不一致，但同一版本多次下载的结果稳定一致。脚本默认只警告不拦截，需要强校验就自己算一遍，再用 `--expect-sha256` 固定下来。
+这是官方接口的已知问题，不是下载损坏：`api_sha256` 字段与真实文件的内容哈希一直不一致，疑似对应内部构建产物。脚本默认只警告不拦截；要强校验就自己算一遍，用 `--expect-sha256` 固定——但要留意上游原地重传会让这个哈希失效（见[同版本号 ≠ 同文件](#同版本号--同文件)）。
 
 **装完之后应用内更新不了？**
 接口返回 `supportsFastUpdate: false`，应用里点更新会提示「前往官网下载」，而官网没有 Linux 入口，等于死循环。更新方式就是重新跑一遍 `./install.sh`。

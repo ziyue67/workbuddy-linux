@@ -39,6 +39,21 @@ jobs:
             printf '%-28s %-20s HTTP %s  %s 字节\n' "workbuddy-linux-$arch-$type" "$ver" "$code" "$size"
             [ "$code" = "200" ] || { echo "::error::workbuddy-linux-$arch-$type 直链返回 $code"; fail=1; }
             [ "$size" -gt 100000000 ] || { echo "::error::workbuddy-linux-$arch-$type 文件大小异常：$size"; fail=1; }
+
+            # 同版本号被原地重传的检测：腾讯会在版本号和构建号都不变的情况下换包
+            platform="workbuddy-linux-$arch-$type"
+            recorded=$(jq -r --arg p "$platform" --arg v "$ver" \
+              '[.entries[] | select(.platform == $p and .version == $v)][0].size // empty' checksums.json)
+            if [ -n "$recorded" ] && [ "$recorded" != "$size" ]; then
+              echo "::warning::$platform 同版本 $ver 的包体积变了：记录 $recorded → 现在 $size（上游原地重传，checksums.json 需要更新）"
+              {
+                echo "### ⚠️ $platform 被原地重传"
+                echo
+                echo "版本号仍是 \`$ver\`，但体积从 \`$recorded\` 变成 \`$size\` 字节。"
+                echo
+                echo "上游在同一个 CDN 地址上换了新构建（文件名不变、版本号不变）。请重新下载并更新 \`checksums.json\`。"
+              } >>"$GITHUB_STEP_SUMMARY"
+            fi
           done
           exit "$fail"
 

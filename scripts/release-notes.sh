@@ -48,7 +48,7 @@ if [ -f checksums.json ] && [ "$(jq '[.entries[] | select(.version == "'"$VERSIO
 
 ## 社区实测校验值
 
-接口字段 `api_sha256` 与真实文件的内容哈希并不一致（官方接口的已知现象），下表是实际下载后算出来的值：
+接口字段 `api_sha256` 与真实文件的内容哈希并不一致（官方接口的已知问题），下表是实际下载后测出来的值：
 
 | 通道 | 文件大小 | 实测 SHA256 |
 | --- | --- | --- |
@@ -56,9 +56,18 @@ EOF
   jq -r --arg v "$VERSION" '
     .entries[]
     | select(.version == $v)
-    | "| `\(.platform)` | \(.size) 字节 | `\(.sha256)` |"
+    | "| `\(.platform)` | \(.size) 字节 | " + (if .sha256 then "`\(.sha256)`" else "未校验（仅 HEAD 取体积）" end) + " |"
   ' checksums.json
   echo
+
+  if jq -e '[.rebuild_log[]? | select(.version == "'"$VERSION"'")] | length > 0' checksums.json >/dev/null 2>&1; then
+    cat <<'EOF'
+> **注意：上游会原地重传。** 同一个版本号、同一个构建号、同一个文件名的包，
+> 内容可能已经被换过（实测过体积和哈希都变的情况）。所以上表的哈希只代表测得那一刻的内容，
+> 判断"有没有变"要看体积，别只看版本号。历次观测见仓库的 `checksums.json`。
+EOF
+    echo
+  fi
   echo "校验方式：\`sha256sum 下载的文件\`，或用 \`install.sh --expect-sha256 <上面的值>\` 强制校验。欢迎 PR 补充其它通道的实测值（见 \`checksums.json\`）。"
 fi
 

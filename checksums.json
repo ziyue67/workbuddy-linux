@@ -1,14 +1,88 @@
 {
-  "note": "社区实测的下载文件 SHA256。官方更新接口里的 api_sha256 字段与实际文件内容哈希不一致（接口的已知现象），这里记录的是真实下载后算出来的值，用于离线留档和 --expect-sha256 强校验。欢迎 PR 补充其它通道 / 版本。",
+  "note": "实际下载后算出来的 SHA256 与文件体积。官方更新接口里的 api_sha256 字段跟真实文件对不上（接口的已知问题），这里记录的是实测值，用于离线留档和 --expect-sha256 强校验。欢迎 PR 补充其它通道 / 版本。",
   "how_to_verify": "sha256sum <下载的文件>，或 ./install.sh --expect-sha256 <sha256>",
+  "warning": "重要：腾讯会在【版本号与构建号都不变】的情况下，往同一个 CDN 地址上传重新构建的包。2026-09-26 与 2026-10-02 两次实测，x64 deb 文件名完全一致但内容不同（体积与 SHA256 都变了）。所以同版本号 ≠ 同文件，体积和哈希都可能变，务必以本文件里的最新实测值为准。",
   "entries": [
     {
       "platform": "workbuddy-linux-x64-deb",
       "version": "5.5.6.38337834",
+      "size": 429329908,
+      "sha256": "2b86814a9f1fa7b62328dad4d99ee43d6ae6206155f553d77b26f81b2b73725c",
+      "measured": "2026-10-02",
+      "method": "完整下载后 sha256sum；包内控制段构建时间为 2026-09-21 10:26"
+    },
+    {
+      "platform": "workbuddy-linux-x64-rpm",
+      "version": "5.5.6.38337834",
+      "size": 378992932,
+      "measured": "2026-10-02",
+      "method": "HEAD Content-Length，未下载校验哈希"
+    },
+    {
+      "platform": "workbuddy-linux-arm64-deb",
+      "version": "5.5.6.38337834",
+      "size": 400079548,
+      "measured": "2026-10-02",
+      "method": "HEAD Content-Length，未下载校验哈希"
+    },
+    {
+      "platform": "workbuddy-linux-arm64-rpm",
+      "version": "5.5.6.38337834",
+      "size": 353126204,
+      "measured": "2026-10-02",
+      "method": "HEAD Content-Length，未下载校验哈希"
+    }
+  ],
+  "rebuild_log": [
+    {
+      "observed": "2026-09-26",
+      "platform": "workbuddy-linux-x64-deb",
+      "version": "5.5.6.38337834",
       "size": 429302312,
-      "sha256": "2ef1bca217d29d9c2ba988c82079aa6ea0077e9f1ff882c6ab5dd7998bddf721",
-      "measured": "2026-09-26",
-      "method": "三次独立下载，结果一致；本地实测安装通过（Ubuntu 26.04.1 LTS）"
+      "sha256": "2ef1bca217d29d9c2ba988c82079aa6ea0077e9f1ff882c6ab5dd7998bddf721"
+    },
+    {
+      "observed": "2026-10-02",
+      "platform": "workbuddy-linux-x64-deb",
+      "version": "5.5.6.38337834",
+      "size": 429329908,
+      "sha256": "2b86814a9f1fa7b62328dad4d99ee43d6ae6206155f553d77b26f81b2b73725c"
+    },
+    {
+      "observed": "2026-09-26",
+      "platform": "workbuddy-linux-x64-rpm",
+      "version": "5.5.6.38337834",
+      "size": 379008112
+    },
+    {
+      "observed": "2026-10-02",
+      "platform": "workbuddy-linux-x64-rpm",
+      "version": "5.5.6.38337834",
+      "size": 378992932
+    },
+    {
+      "observed": "2026-09-26",
+      "platform": "workbuddy-linux-arm64-deb",
+      "version": "5.5.6.38337834",
+      "size": 400116564
+    },
+    {
+      "observed": "2026-10-02",
+      "platform": "workbuddy-linux-arm64-deb",
+      "version": "5.5.6.38337834",
+      "size": 400079548
+    },
+    {
+      "observed": "2026-09-26",
+      "platform": "workbuddy-linux-arm64-rpm",
+      "version": "5.5.6.38337834",
+      "size": 353090484
+    },
+    {
+      "observed": "2026-10-02",
+      "platform": "workbuddy-linux-arm64-rpm",
+      "version": "5.5.6.38337834",
+      "size": 353126204
     }
   ]
 }
