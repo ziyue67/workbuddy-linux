@@ -382,7 +382,7 @@ check_all() {
     else
       state="锚点缺失（版本可能已变）"
     fi
-    printf 'app.asar : %-46s %s\n' "${marker#//#region }" "$state"
+    printf 'app.asar : %-62s %s\n' "${marker#//#region }" "$state"
   done
 
   for entry in "${CLI_ENTRIES[@]}"; do
@@ -394,7 +394,7 @@ check_all() {
     else
       state="未打补丁"
     fi
-    printf 'CLI      : %-46s %s\n' "$entry" "$state"
+    printf 'CLI      : %-62s %s\n' "$entry" "$state"
   done
 }
 
@@ -434,7 +434,7 @@ if [ "$DRY_RUN" -eq 0 ]; then
   mkdir -p "$STATE_DIR"
 fi
 
-if pgrep -f "$APP_ROOT/workbuddy" >/dev/null 2>&1; then
+if pgrep -x workbuddy >/dev/null 2>&1 || pgrep -x WorkBuddy >/dev/null 2>&1; then
   warn "检测到 WorkBuddy 正在运行；补丁会在下次启动生效，建议先完全退出（含托盘进程）再打"
 fi
 
