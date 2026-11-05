@@ -27,6 +27,7 @@ DRY_RUN=0
 WITH_RECOMMENDS=0
 REDOWNLOAD=0
 FORCE=0
+FIX_TLS=0
 JSON=0
 MIRROR="$DEFAULT_MIRROR"
 EXPECT_SHA=""
@@ -61,6 +62,7 @@ usage() {
       --dry-run            只下载并校验，不安装
       --rm                 安装成功后删除下载的安装包
       --recommends         一并安装 deb 的推荐依赖（imagemagick、托盘库等）
+      --fix-tls            安装后顺手修复登录超时 / 聊天转圈（TLS 1.3，见 issue #1）
       --expect-sha256 H    强制校验下载文件的 SHA256，不匹配则中止
       --mirror URL         替换下载域名（自建或第三方镜像），默认 download.codebuddy.cn
   -f, --force              即使本地已是最新版本，也重新下载安装
@@ -97,6 +99,7 @@ while [ $# -gt 0 ]; do
     --dry-run)     DRY_RUN=1; shift ;;
     --rm)          KEEP=0; shift ;;
     --recommends)  WITH_RECOMMENDS=1; shift ;;
+    --fix-tls)     FIX_TLS=1; shift ;;
     -f|--force)    FORCE=1; shift ;;
     -h|--help)     usage; exit 0 ;;
     *) die "未知参数: $1（用 --help 查看用法）" ;;
@@ -106,6 +109,7 @@ done
 [ -z "$CHANNEL" ] || case "$CHANNEL" in deb|rpm) ;; *) die "--channel 只能是 deb 或 rpm" ;; esac
 [ -z "$ARCH" ] || case "$ARCH" in x64|arm64) ;; *) die "--arch 只能是 x64 或 arm64" ;; esac
 [ "$JSON" -eq 0 ] || [ "$MODE" = check ] || die "--json 需要配合 --check 使用"
+[ "$FIX_TLS" -eq 0 ] || [ "$MODE" = install ] || die "--fix-tls 只能用于安装/升级，不能和 --check / --url-only / --table 一起用"
 
 # ---------- 环境探测 ----------
 
@@ -274,6 +278,25 @@ do_install() { # do_install <文件> <类型>
   esac
 }
 
+apply_tls_fix() {
+  local src tmp
+  src="$(dirname "$0")/scripts/fix-tls.sh"
+  if [ -f "$src" ]; then
+    log "应用 TLS 1.3 修复：$src"
+    "${SUDO[@]}" bash "$src"
+    return 0
+  fi
+  tmp=$(mktemp)
+  trap 'rm -f "$tmp"' EXIT
+  curl -fsSL --retry 2 --connect-timeout 20 --max-time 60 \
+    "${WORKBUDDY_FIX_TLS_URL:-https://raw.githubusercontent.com/ziyue67/workbuddy-linux/main/scripts/fix-tls.sh}" -o "$tmp" \
+    || die "下载 fix-tls.sh 失败（可用 WORKBUDDY_FIX_TLS_URL 指定镜像）"
+  log "应用 TLS 1.3 修复（远程脚本）"
+  "${SUDO[@]}" bash "$tmp"
+  rm -f "$tmp"
+  trap - EXIT
+}
+
 # ---------- 通道表 ----------
 
 print_table() {
@@ -357,6 +380,10 @@ fi
 
 if [ "$UP_TO_DATE" -eq 1 ] && [ "$FORCE" -eq 0 ]; then
   log "本机已安装 $INSTALLED，就是最新版（用 --force 可强制重装）"
+  if [ "$FIX_TLS" -eq 1 ] && [ "$DRY_RUN" -eq 0 ]; then
+    setup_sudo
+    apply_tls_fix
+  fi
   exit 0
 fi
 
@@ -397,6 +424,10 @@ fi
 
 setup_sudo
 do_install "$FILE" "$CHANNEL"
+
+if [ "$FIX_TLS" -eq 1 ] && [ "$DRY_RUN" -eq 0 ]; then
+  apply_tls_fix
+fi
 
 NEW=$(installed_version)
 if [ -n "$NEW" ]; then

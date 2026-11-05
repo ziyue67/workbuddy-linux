@@ -4,6 +4,7 @@
 
 - `install.sh`
 - `scripts/update-index.sh`
+- `scripts/fix-tls.sh`
 - `.github/workflows/update-index.yml`
 - `README.md` 与本文档
 - `index.json`（接口元数据的整理结果）

@@ -61,6 +61,7 @@ curl -fsSL https://ghproxy.net/https://raw.githubusercontent.com/ziyue67/workbud
       --dry-run            只下载并校验，不安装
       --rm                 安装成功后删除安装包
       --recommends         一并安装 deb 的推荐依赖（imagemagick、托盘库等）
+      --fix-tls            安装后顺手修复登录超时 / 聊天转圈（TLS 1.3，见 issue #1）
       --expect-sha256 H    强制校验 SHA256，不匹配则中止
       --mirror URL         替换下载域名，用于自建/第三方镜像
   -f, --force              已是最新版本也重新安装
@@ -78,6 +79,63 @@ curl -fsSL https://ghproxy.net/https://raw.githubusercontent.com/ziyue67/workbud
 ```
 
 脚本会在本机已是最新版本时直接退出，所以可以放进定时任务或更新脚本里重复执行。
+
+## 登录超时 / 聊天一直转圈：TLS 1.3 一键修复
+
+装完 5.6.2 后如果遇到这些现象，先别怀疑网络：
+
+- 点登录没反应，或提示无法连接服务器；
+- 登录能过，但发消息一直转圈，模型服务端看不到任何请求；
+- 同一台机器上 `curl https://www.workbuddy.cn` 完全正常。
+
+原因：Electron 内置 Node 默认用 TLS 1.2 发 ClientHello，被边缘节点静默丢弃（TCP 握手成功、`ClientHello` 发出去了但收不到 `ServerHello`）。完整排查过程见 [issue #1](https://github.com/ziyue67/workbuddy-linux/issues/1)。
+
+一键修复：
+
+```bash
+sudo ./scripts/fix-tls.sh
+```
+
+没克隆仓库也可以直接跑：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ziyue67/workbuddy-linux/main/scripts/fix-tls.sh | sudo bash
+```
+
+脚本做四件事：
+
+| # | 位置 | 动作 |
+| --- | --- | --- |
+| 1 | `/opt/wbtls.js` | 写入 shim：`require("tls").DEFAULT_MIN_VERSION = "TLSv1.3"` |
+| 2 | `resources/app.asar` 的 `main/index.js`、`main/daemon-app-server-entry.js` | 把 `//#region` 锚点注释**等长替换**成 `require("/opt/wbtls.js");`，文件大小不变、不重新打包 |
+| 3 | `resources/app.asar.unpacked/cli/bin/{codebuddy,cbc-prewarm,codebuddy-lowmem}` | 在 shebang 后插入同一行——聊天请求由 CLI 宿主发出，漏掉这里就会「登录能过、聊天一直转圈」 |
+| 4 | `/var/lib/workbuddy-tls-fix/` | 记录原始字节，`--revert` 可原样恢复 |
+
+常用参数：
+
+```bash
+sudo ./scripts/fix-tls.sh --check         # 只检查，不改文件
+sudo ./scripts/fix-tls.sh --dry-run       # 看看会改哪里
+sudo ./scripts/fix-tls.sh --revert        # 撤销，恢复原始字节
+sudo ./scripts/fix-tls.sh --install-self  # 装到 /usr/local/sbin/workbuddy-fix-tls，供启动器自愈
+```
+
+安装时也可以一步到位：
+
+```bash
+./install.sh --fix-tls
+```
+
+**已知副作用**：强制 TLS 1.3 后，只支持 TLS 1.2 的域名（`wb.tencentbuddy.com` 登录 failover、`ardot.tencent.com` 设计类 MCP）在 Node 侧会不可达。这是服务端限制，两种配置都走不通；主域名正常时不影响日常使用。
+
+**升级后要重打**：重装 / 升级会覆盖 `/opt/WorkBuddy`，补丁全部丢失。可以 `--install-self` 后在启动器里加一层自愈：
+
+```sh
+if ! grep -q "/opt/wbtls.js" \
+     /opt/WorkBuddy/resources/app.asar.unpacked/cli/bin/codebuddy 2>/dev/null; then
+  sudo -n /usr/local/sbin/workbuddy-fix-tls --quiet >/dev/null 2>&1 || true
+fi
+```
 
 ## 支持矩阵
 
@@ -173,6 +231,9 @@ curl -fsSL https://raw.githubusercontent.com/ziyue67/workbuddy-linux/main/index.
 ```
 
 ## 常见问题
+
+**登录没反应 / 发消息一直转圈？**
+先看上文《登录超时 / 聊天一直转圈：TLS 1.3 一键修复》。`~/.workbuddy/logs/network-failover.jsonl` 里出现 `ECONNABORTED` 基本可以确诊，`sudo ./scripts/fix-tls.sh` 一条命令修好。
 
 **接口给的 `sha256hash` 和实际文件对不上？**
 这是官方接口的已知问题，不是下载损坏：`api_sha256` 字段与真实文件的内容哈希一直不一致，疑似对应内部构建产物。脚本默认只警告不拦截；要强校验就自己算一遍，用 `--expect-sha256` 固定——但要留意上游原地重传会让这个哈希失效（见[同版本号 ≠ 同文件](#同版本号--同文件)）。
