@@ -24,6 +24,14 @@
 
 ## 快速开始
 
+脚本需要 Bash 和 `curl`。如果系统尚未安装 `curl`，请先按发行版安装：
+
+```bash
+sudo apt-get install curl    # Debian / Ubuntu
+sudo dnf install curl        # Fedora / RHEL
+sudo zypper install curl     # openSUSE
+```
+
 最简单的方式是先把脚本下载下来看一眼再运行：
 
 ```bash

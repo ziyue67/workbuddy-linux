@@ -316,6 +316,10 @@ print_table() {
 
 # ---------- 主流程 ----------
 
+# 所有联网模式都依赖 curl；在首次调用前检查
+command -v curl >/dev/null 2>&1 \
+  || die "缺少 curl，请安装 curl 后重试"
+
 [ "$MODE" = table ] && { print_table; exit 0; }
 
 [ -n "$CHANNEL" ] || CHANNEL=$(detect_channel)
