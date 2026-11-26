@@ -1,51 +1,51 @@
 {
   "channels": {
     "workbuddy-linux-arm64-deb": {
-      "api_sha256": "561822578435d382a06d0a0b079a4b157f68b588c9fe72d589e2a88b2fd155fa",
+      "api_sha256": "d0785c00574c11914b9102936239d4cd29d5faaed8ec480f78cf33c1d0f2e9fd",
       "arch": "arm64",
       "platform": "workbuddy-linux-arm64-deb",
-      "released": "2026-09-30T11:58:47Z",
-      "size": 400068468,
-      "timestamp": 1790769527,
+      "released": "2026-11-19T20:29:30Z",
+      "size": 417630868,
+      "timestamp": 1795120170,
       "type": "deb",
-      "url": "https://download.codebuddy.cn/workbuddy/saas/linux-arm64-deb/WorkBuddy-linux-arm64-deb-5.6.2.40046327-c7b525f3.deb",
-      "version": "5.6.2.40046327"
+      "url": "https://download.codebuddy.cn/workbuddy/saas/linux-arm64-deb/WorkBuddy-linux-arm64-deb-5.11.6.44396970-0f347fd9.deb",
+      "version": "5.11.6.44396970"
     },
     "workbuddy-linux-arm64-rpm": {
-      "api_sha256": "26df914b76abfb9167718bbbbe292e0676ec6eff5e12da7e01c3a049daaae695",
+      "api_sha256": "7f559bf13f4e762ed9b004e359aaee4c111650f88384f7278b85f8365dad1402",
       "arch": "arm64",
       "platform": "workbuddy-linux-arm64-rpm",
-      "released": "2026-09-30T11:58:47Z",
-      "size": 355596876,
-      "timestamp": 1790769527,
+      "released": "2026-11-19T20:29:30Z",
+      "size": 370880268,
+      "timestamp": 1795120170,
       "type": "rpm",
-      "url": "https://download.codebuddy.cn/workbuddy/saas/linux-arm64-rpm/WorkBuddy-linux-arm64-rpm-5.6.2.40046327-c7b525f3.rpm",
-      "version": "5.6.2.40046327"
+      "url": "https://download.codebuddy.cn/workbuddy/saas/linux-arm64-rpm/WorkBuddy-linux-arm64-rpm-5.11.6.44396970-0f347fd9.rpm",
+      "version": "5.11.6.44396970"
     },
     "workbuddy-linux-x64-deb": {
-      "api_sha256": "12149ad8c0cd748fd5062d8f62c7827d688d8095427ada99b1ae9e7019897523",
+      "api_sha256": "2eefe5e1e777bc8412b8bfe60b9acb4ccba20595a8a4eedaf120119e3a156de8",
       "arch": "x64",
       "platform": "workbuddy-linux-x64-deb",
-      "released": "2026-09-30T11:58:47Z",
-      "size": 429829872,
-      "timestamp": 1790769527,
+      "released": "2026-11-19T20:29:30Z",
+      "size": 450428740,
+      "timestamp": 1795120170,
       "type": "deb",
-      "url": "https://download.codebuddy.cn/workbuddy/saas/linux-x64-deb/WorkBuddy-linux-x64-deb-5.6.2.40046327-c7b525f3.deb",
-      "version": "5.6.2.40046327"
+      "url": "https://download.codebuddy.cn/workbuddy/saas/linux-x64-deb/WorkBuddy-linux-x64-deb-5.11.6.44396970-0f347fd9.deb",
+      "version": "5.11.6.44396970"
     },
     "workbuddy-linux-x64-rpm": {
-      "api_sha256": "2e49fac166708e9716ab36dc3a7ffcf0fcea4a94591419b3654c59b67f4d392d",
+      "api_sha256": "b5b488704b45a97142c77f8098ac6ecd345e516b8db55a7f638a80ca4f70d883",
       "arch": "x64",
       "platform": "workbuddy-linux-x64-rpm",
-      "released": "2026-09-30T11:58:47Z",
-      "size": 378230056,
-      "timestamp": 1790769527,
+      "released": "2026-11-19T20:29:30Z",
+      "size": 397823328,
+      "timestamp": 1795120170,
       "type": "rpm",
-      "url": "https://download.codebuddy.cn/workbuddy/saas/linux-x64-rpm/WorkBuddy-linux-x64-rpm-5.6.2.40046327-c7b525f3.rpm",
-      "version": "5.6.2.40046327"
+      "url": "https://download.codebuddy.cn/workbuddy/saas/linux-x64-rpm/WorkBuddy-linux-x64-rpm-5.11.6.44396970-0f347fd9.rpm",
+      "version": "5.11.6.44396970"
     }
   },
   "note": "本索引只记录腾讯官方接口返回的元数据，不托管任何二进制包。官方 api_sha256 与实际下载文件的历史实测值不一致，请以实际下载后自行计算的 sha256 为准。",
   "source": "https://copilot.tencent.com/v2/update",
-  "updated": "2026-11-25T12:53:48Z"
+  "updated": "2026-11-26T12:31:39Z"
 }
